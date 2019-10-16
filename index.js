@@ -12,34 +12,40 @@ function getProjectIndex(id) {
   return projects.findIndex(p => p.id == id);
 }
 
-server.use((req, res, next) => {
-  CountRequest++;
-
-  console.log(`Total de Requisições: ${CountRequest}`)
-
-  next();
-})
-
 function checkProjectExists(req, res, next) {
   const { id } = req.params;
-  const projectIndex = getProjectIndex(id);
+  const project = projects.find(p => p.id == id);
 
-  if (projectIndex === -1) {
+  if (!project) {
     return res.status(400).json({ error: `Projeto ${id} não encontrado!` })
   }
 
   return next();
 }
 
+function logRequests(req, res, next) {
+  CountRequest++;
+
+  console.log(`Total de Requisições: ${CountRequest}`)
+
+  next();
+}
+
+server.use(logRequests);
+
 // CRIAR NOVO PROJETO
 server.post('/projects', (req, res) => {
-  const { id } = req.body;
-  const { title} = req.body;
-  const { tasks } = req.body;
+  const { id, title } = req.body;
 
-  projects.push({ id, title, tasks });
+  const project = {
+    id,
+    title,
+    tasks: []
+  }
 
-  return res.json(projects);
+  projects.push(project);
+
+  return res.json(project);
 })
 
 // LISTAR TODOS OS PROJETOS
@@ -51,11 +57,12 @@ server.get('/projects', (req, res) => {
 server.put('/projects/:id', checkProjectExists, (req, res) => {
   const { id } = req.params;
   const { title } = req.body;
-  const projectIndex = getProjectIndex(id);
-  
-  projects[projectIndex].title = title;
 
-  return res.json(projects);
+  const project = projects.find(p => p.id == id);
+  
+  project.title = title;
+
+  return res.json(project);
 })
 
 // DELETAR UM PROJETO PELO ID
@@ -72,11 +79,12 @@ server.delete('/projects/:id', checkProjectExists, (req, res) => {
 server.post('/projects/:id/tasks', checkProjectExists, (req, res) => {
   const { id } = req.params;
   const { title } = req.body;
-  const projectIndex = getProjectIndex(id);
 
-  projects[projectIndex].tasks = [title];
+  const project = projects.find(p => p.id == id);
 
-  return res.json(projects);
+  project.tasks.push(title);
+
+  return res.json(project);
 })
 
 server.listen(3000);
